@@ -293,6 +293,9 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 .fld select option { color: #111; background: #eef2e8; }
 .fld input:focus-visible, .fld select:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; }
 #stage.duo .hide-duo { display: none; }
+.homeb { align-self: flex-start; appearance: none; border: 0; background: none; padding: 4px 0; margin-bottom: -8px; font: 600 14px/1 var(--font-body); color: var(--mut); cursor: pointer; }
+.homeb:hover { color: var(--chalk); }
+.homeb:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
 #tut { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 20px max(16px, env(safe-area-inset-right, 0px)) 20px max(16px, env(safe-area-inset-left, 0px)); background: rgba(6, 10, 24, .84); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); cursor: default; }
 #tut[hidden] { display: none; }
 .tut-t { margin: 0; font-size: 17px; line-height: 1.55; color: var(--chalk); text-wrap: pretty; }
@@ -1298,7 +1301,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     var e = { pts: M.pts * 5, streak: Math.round(M.bonus), star: M.starPrim, win: M.won ? 60 + 40 * T.round : 0, str: M.won ? Math.round(TEAMS[M.opp].A * 50) : 0, title: T.champ ? 400 : 0 };
     e.total = e.pts + e.streak + e.star + e.win + e.str + e.title; rec.coins += e.total; st.totalPrim += e.total;
     e.ach = checkAch(); e.achPrim = e.ach.reduce(function (a, x) { return a + x.r; }, 0); e.total += e.achPrim;
-    T.earn = e; saveRec(); lgAfterCup();
+    T.earn = e; saveRec(); lgAfterCup(); cupAfter();
   }
   function nextRoundPairs() {
     var winners = T.res.map(function (r) { return r.win; });
@@ -1423,7 +1426,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     var h = '', tm = TEAMS[LG.team];
     if (view === 'lgprev') {
       var op = TEAMS[LG.opps[LG.md]], d = diffOf(op.A);
-      h += head(false);
+      h += head(false, 'league');
       h += '<section class="grp"><p class="mut">Lig aşaması · ' + (LG.md + 1) + '/8 · ' + tm.n + ' kalesinde</p><h2 class="opp">' + op.n + '</h2></section>';
       h += '<dl class="kv"><div><dt>Gelecek şut</dt><dd>' + d.N + '</dd></div><div><dt>Şut hızı</dt><dd>' + tempoName(op.A) + '</dd></div>' +
         '<div><dt>Saha</dt><dd>' + VL[LG.venue] + (LG.venue === 'rain' ? ' · top hızlı, tutuş zor' : '') + '</dd></div>' +
@@ -1433,7 +1436,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     } else if (view === 'lgres') {
       var L = LG.last, o2 = TEAMS[L.opp], e = L.earn;
       var sub = L.ko ? (L.won ? 'Play-off kazanıldı · son 16\'dasın' : 'Play-off\'ta elendin · sezon bitti') : L.won ? 'Galibiyet · +3 puan' : L.draw ? 'Beraberlik · +1 puan' : 'Mağlubiyet';
-      h += head(false);
+      h += head(false, LG.phase === 'done' ? '' : 'league');
       h += '<section class="grp"><p class="mut">' + (L.ko ? 'Play-off' : 'Lig aşaması · ' + LG.md + '/8') + ' · ' + tm.n + ' – ' + o2.n + '</p>';
       h += '<div class="bigscore">' + L.ga + ' – ' + L.gb + '<small>' + sub + (L.pen ? ' · penaltılar ' + L.pen[0] + '–' + L.pen[1] : '') + '</small></div></section>';
       h += '<dl class="kv"><div><dt>Kurtarış puanları</dt><dd>+' + e.pts + '</dd></div>' + (e.win ? '<div><dt>Maç sonucu</dt><dd>+' + e.win + '</dd></div>' : '') +
@@ -1444,12 +1447,12 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
       var nx = LG.phase === 'league' ? 'Sonraki maç' : LG.phase === 'lgdone' ? 'Lig aşaması sonucu' : LG.phase === 'ko' ? 'Son 16\'ya geç' : 'Ana ekrana dön';
       h += '<div class="cta"><button class="go" data-act="' + (LG.phase === 'done' ? 'lgover' : 'lgcont') + '" type="button">' + nx + '</button>' + (LG.phase === 'league' || LG.phase === 'lgdone' ? '<button class="btn alt" style="margin-top:10px" type="button" data-act="lgtab">Puan tablosu</button>' : '') + '</div>';
     } else if (view === 'lgtab') {
-      h += head(false);
+      h += head(false, 'league');
       h += '<section class="grp"><h2>Puan tablosu</h2><p class="mut">İlk 8 doğrudan son 16 · 9–24 play-off · 25–36 elenir</p></section>' + lgTable(1, 36);
       h += '<div class="cta"><button class="go" data-act="lgcont" type="button">Geri</button></div>';
     } else if (view === 'lgend') {
       var r = lgRank(LG.team), msg = r <= 8 ? 'Doğrudan son 16\'dasın' : r <= 24 ? 'Play-off oynayacaksın' : 'Elendin · sezon bitti';
-      h += head(false);
+      h += head(false, 'league');
       h += '<section class="grp"><p class="mut">Lig aşaması bitti · ' + tm.n + '</p><div class="bigscore">' + r + '. sıra<small>' + msg + '</small></div></section>';
       h += '<dl class="kv"><div><dt>Puan</dt><dd>' + LG.tb[LG.team].pts + '</dd></div><div><dt>Sıralama ödülü</dt><dd>+' + LG.bonus + ' akçe</dd></div></dl>';
       h += lgTable(Math.max(1, Math.min(r - 3, 30)), Math.max(1, Math.min(r - 3, 30)) + 6);
@@ -1459,6 +1462,18 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     return h;
   }
 
+  // Devam eden hızlı kupa: maçlar arasında ana menüye dönülebilsin, sayfa kapansa da kalsın.
+  var CUP = null;
+  try { var cp0 = JSON.parse(localStorage.getItem('kaleci-kupa') || 'null'); if (cp0 && Array.isArray(cp0.pairs) && TEAMS[cp0.team] && cp0.round >= 0 && cp0.round <= 3) CUP = cp0; } catch (e) {}
+  function saveCup(t) { CUP = t ? JSON.parse(JSON.stringify(t)) : null; try { localStorage.setItem('kaleci-kupa', JSON.stringify(CUP)); } catch (e) {} }
+  function cupAfter() {
+    if (T.fromLeague) return;
+    if (T.champ || !T.won) { saveCup(null); return; }
+    var c = JSON.parse(JSON.stringify(T)), w = c.res.map(function (r) { return r.win; });
+    c.round++; c.pairs = makePairs(w); c.res = []; c.venue = null; c.won = false; c.earn = null;
+    for (var i = 0; i < c.pairs.length; i++) if (c.pairs[i][0] === c.team || c.pairs[i][1] === c.team) c.myPair = i;
+    saveCup(c);
+  }
   // ---------- Paneller ----------
   var menu = $('menu'), sheet = $('sheet'), tab = 'select', storeMsg = '';
   var fmt = function (n) { return n.toLocaleString('tr-TR'); };
@@ -1471,8 +1486,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     }).join('');
   }
   var bestNames = ['Henüz yok', 'Çeyrek final', 'Yarı final', 'Final', 'Şampiyon'];
-  function head(tabs) {
-    return '<header class="head"><div class="mark"><span class="w">Son Çizgi</span><span class="s">Kaleci oyunu · Yıldızlar Ligi 2026-27</span></div>' +
+  function head(tabs, home) {
+    return (home ? '<button class="homeb" type="button" data-act="home" data-m="' + home + '">‹ Ana menü</button>' : '') + '<header class="head"><div class="mark"><span class="w">Son Çizgi</span><span class="s">Kaleci oyunu · Yıldızlar Ligi 2026-27</span></div>' +
       '<div class="wallet" aria-label="Akçe bakiyesi"><i class="coin"></i><span>' + fmt(rec.coins) + '</span><small>akçe</small></div></header>' +
       (tabs ? '<nav class="tabs" role="tablist" aria-label="Menü">' + [['select', 'Oyna'], ['store', 'Mağaza'], ['career', 'Kariyer'], ['duo', 'Düello'], ['settings', 'Ayarlar']].map(function (t) {
         return '<button class="tab" role="tab" type="button" data-act="tab" data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + '</button>';
@@ -1505,6 +1520,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
       h += head(true);
       h += '<div class="seg" role="group" aria-label="Oyun modu"><button type="button" data-act="gmode" data-v="league" aria-pressed="' + (gmode === 'league') + '">Yıldızlar Ligi</button><button type="button" data-act="gmode" data-v="cup" aria-pressed="' + (gmode === 'cup') + '">Hızlı kupa</button></div>';
       var active = gmode === 'league' && LG && LG.phase !== 'done';
+      if (gmode === 'cup' && CUP) h += '<section class="grp lgcard"><h2>Devam eden kupa</h2><p class="mut">' + TEAMS[CUP.team].n + ' · ' + RN[CUP.round] + '</p><button class="go" data-act="cupcont" type="button">Kupaya devam et</button></section>';
       if (active) h += '<section class="grp lgcard"><h2>Devam eden sezon</h2><p class="mut">' + lgStatus() + '</p><button class="go" data-act="lgcont" type="button">Sezona devam et</button></section>';
       h += '<section class="grp"><h2>' + (active ? 'Yeni sezon için takım seç' : 'Takımını seç') + '</h2><p class="mut">' + (gmode === 'league' ? 'Lig aşamasında 8 maç oynarsın. 36 takımlık tabloda ilk 8 son 16\'ya, 9–24 arası play-off\'a kalır, sonra eleme turları başlar.' : 'Tek maçlık eleme: son 16, çeyrek final, yarı final ve final.') + ' Rakip güçlendikçe şut sayısı ve hızı artar.</p><div class="list" role="radiogroup" aria-label="Takım">';
       var selT = LG && gmode === 'league' ? LG.team : T.team;
@@ -1546,7 +1562,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
       h += '<div class="cta"><button class="go" data-act="tab" data-tab="select" type="button">Ana ekrana dön</button></div>';
     } else if (view === 'preview') {
       var opi = oppOf(), op = TEAMS[opi], d = diffOf(op.A);
-      h += head(false);
+      h += head(false, T.fromLeague ? 'league' : 'cup');
       h += '<section class="grp"><p class="mut">' + rname() + ' · ' + TEAMS[T.team].n + ' kalesinde</p><h2 class="opp">' + op.n + '</h2></section>';
       h += '<dl class="kv"><div><dt>Rakip gücü</dt><dd><i class="meter" style="--w:' + op.A.toFixed(2) + '"></i>' + pct(op.A) + ' / 100</dd></div>' +
         '<div><dt>Gelecek şut</dt><dd>' + d.N + '</dd></div><div><dt>Şut hızı</dt><dd>' + tempoName(op.A) + '</dd></div>' +
@@ -1567,7 +1583,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
         sub = M.pens ? 'Penaltılarda elendin ' + M.penOurs + '–' + M.penTheirs : 'Mağlubiyet · turnuva bitti';
         btn = '<button class="go" data-act="again" type="button">Yeni turnuva</button>';
       }
-      h += head(false);
+      h += head(false, (!tie && M.won && !T.champ) ? (T.fromLeague ? 'league' : 'cup') : '');
       h += '<section class="grp"><p class="mut">' + rname() + ' · ' + TEAMS[T.team].n + ' – ' + op2.n + '</p>';
       h += '<div class="bigscore">' + (T.champ ? 'Şampiyon!' : sc) + '<small>' + (T.champ ? 'Kupa ' + TEAMS[T.team].n + ' kalesinde. ' : '') + sub + '</small></div></section>';
       h += '<dl class="kv"><div><dt>Kurtarış</dt><dd>' + M.saves + ' / ' + M.shots + ' şut</dd></div><div><dt>Puan</dt><dd>' + M.pts + ' · ' + M.ours + ' gole dönüştü</dd></div><div><dt>Yenilen gol</dt><dd>' + M.theirs + '</dd></div></dl>';
@@ -2705,10 +2721,10 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     if (act === 'tab') { tab = btn.getAttribute('data-tab'); storeMsg = ''; if (tab === 'duo') lbMsg = lbMsg; render(tab); }
     else if (act === 'start') {
       var sel = sheet.querySelector('input[name=team]:checked');
-      newTournament(sel ? +sel.value : 0); render('preview');
+      newTournament(sel ? +sel.value : 0); saveCup(T); render('preview');
     } else if (act === 'go') { startMatch(); }
     else if (act === 'pens') { startPens(); }
-    else if (act === 'next') { nextRoundPairs(); render('preview'); }
+    else if (act === 'next') { nextRoundPairs(); if (!T.fromLeague) saveCup(T); render('preview'); }
     else if (act === 'botstart') { startBot(); }
     else if (act === 'tut') { showTut(0); }
     else if (act === 'gmode') { gmode = btn.getAttribute('data-v'); render('select', true); }
@@ -2725,7 +2741,9 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     else if (act === 'onstart') { lobbyStart(); }
     else if (act === 'onleave') { leaveRoom(true); lbMsg = ''; tab = 'duo'; duoMode = 'online'; render('duo', true); }
     else if (act === 'onrematch') { if (LB) lobbyStart(LB.fs === 0 ? 1 : 0); }
-    else if (act === 'again') { if (T.fromLeague) { LG = null; saveLg(); } tab = 'select'; render('select'); }
+    else if (act === 'again') { if (T.fromLeague) { LG = null; saveLg(); } else saveCup(null); tab = 'select'; render('select'); }
+    else if (act === 'home') { gmode = btn.getAttribute('data-m') === 'cup' ? 'cup' : 'league'; tab = 'select'; storeMsg = ''; render('select'); }
+    else if (act === 'cupcont') { if (CUP) { T = JSON.parse(JSON.stringify(CUP)); render('preview'); } }
     else if (act === 'sreset') { for (var sk2 in DEF) set[sk2] = DEF[sk2]; saveSet(); applyCursor(); applyVol(); render('settings', true); }
     else if (act === 'buy') {
       var list = kind === 'gl' ? GLOVES : BALLS, it = list.filter(function (x) { return x.id === id; })[0];
