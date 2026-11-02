@@ -9,4 +9,6 @@ Birinci şahıs kaleci oyunu. Tarayıcıda çalışır, kurulum gerektirmez.
 
 Takım ve lig adları hayalidir.
 
-Oynamak için `index.html` dosyasını açman ya da GitHub Pages adresine gitmen yeterli.
+- `index.html`: tanıtım sitesi
+- `oyun.html`: oyunun kendisi (tek dosya, çevrimdışı da açılır)
+- `img/`: sitedeki ekran görüntüleri
