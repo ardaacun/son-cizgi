@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ardaacun.github.io/son-cizgi/sitemap.xml
