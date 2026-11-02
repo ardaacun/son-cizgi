@@ -1735,6 +1735,33 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     resetRound();
   }
 
+  // Penaltıda kale üç bölgeye ayrılır (kalecinin gözünden): 0 sol, 1 orta, 2 sağ.
+  var ZN = ['Sol', 'Orta', 'Sağ'], ZR = [[-4.4, -1.0], [-1.7, 1.7], [1.0, 4.4]];
+  function zoneOf(x) { return x < -1.33 ? 0 : x > 1.33 ? 2 : 1; }
+  function pickZone(z) { if (phase === 'pick' && M.pz === null && !S.duo && M.mode === 'pen') { M.pz = z; sfx.parry(); } }
+  function drawZones() {
+    var edges = [-POST, -1.33, 1.33, POST], c = ctx, keys = ['A', 'S', 'D'];
+    for (var z = 0; z < 3; z++) {
+      var a = proj(edges[z], BAR, 0), b = proj(edges[z + 1], 0, 0), sel = M.pz === z, live = phase === 'pick';
+      if (!live && !sel) continue;
+      c.fillStyle = sel ? 'rgba(255,194,71,.22)' : 'rgba(238,242,232,.07)'; c.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
+      c.strokeStyle = sel ? 'rgba(255,194,71,.9)' : 'rgba(238,242,232,.35)'; c.lineWidth = sel ? 3 : 1.5; c.strokeRect(a.x + 1, a.y + 1, b.x - a.x - 2, b.y - a.y - 2);
+      if (live) {
+        c.fillStyle = sel ? '#ffc247' : 'rgba(238,242,232,.85)'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.font = '900 ' + Math.round(Math.min(64, (b.x - a.x) * 0.22)) + 'px Big Shoulders Display, system-ui, sans-serif';
+        c.fillText(keys[z], (a.x + b.x) / 2, (a.y + b.y) / 2 - 10);
+        c.font = '600 14px Instrument Sans, system-ui, sans-serif'; c.fillText(ZN[z].toUpperCase(), (a.x + b.x) / 2, (a.y + b.y) / 2 + 28);
+        c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+      }
+    }
+    if (phase === 'pick') {
+      var tp = proj(0, BAR, 0); c.fillStyle = 'rgba(8,13,30,.78)'; c.font = '600 15px Instrument Sans, system-ui, sans-serif';
+      var msg = M.pz === null ? 'Köşeni seç: A sol · S orta · D sağ ya da bölgeye tıkla' : ZN[M.pz] + ' köşeyi seçtin';
+      var mw = c.measureText(msg).width + 28; c.fillRect(W / 2 - mw / 2, tp.y - 46, mw, 32);
+      c.fillStyle = M.pz === null ? '#eef2e8' : '#ffc247'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(msg, W / 2, tp.y - 30); c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+    }
+    if (phase === 'pick') { var w = Math.min(300, W * 0.5); c.fillStyle = 'rgba(238,242,232,.18)'; c.fillRect((W - w) / 2, H - 40, w, 6); c.fillStyle = '#ffc247'; c.fillRect((W - w) / 2, H - 40, w * Math.max(0, 1 - pt / 3.5), 6); }
+  }
   function launch() {
     var d = M.d, A = TEAMS[M.opp].A, pen = M.mode === 'pen', Tm, tx, ty, curve = 0, dip = 0, wob = 0, corner;
     if (pen) { Tm = Math.max(0.52, 0.9 - 0.3 * A) * (0.92 + Math.random() * 0.16); corner = 0.75; curve = (Math.random() * 2 - 1) * 0.5; wob = 0.04; }
@@ -1744,6 +1771,11 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     }
     if (V === 'rain') Tm *= 0.92;
     tx = (Math.random() * 2 - 1) * 3.4; ty = 0.3 + Math.random() * 2.1;
+    if (pen) {
+      var zr = Math.random(), zz = zr < 0.4 ? 0 : zr < 0.6 ? 1 : 2;
+      tx = zz === 1 ? (Math.random() * 2 - 1) * 1.1 : (zz === 0 ? -1 : 1) * (1.7 + Math.random() * 1.9);
+      ty = 0.3 + Math.random() * 2.0; corner = 0;
+    }
     if (Math.random() < corner) {
       tx = (tx < 0 ? -1 : 1) * (2.4 + Math.random() * 1.1);
       ty = Math.random() < 0.5 ? 0.3 + Math.random() * 0.5 : 2.0 + Math.random() * 0.4;
@@ -1757,7 +1789,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     var gl = G.x - G.gap, gr = G.x + G.gap;
     var d1 = Math.hypot(B.x - gl, B.y - G.y), d2 = Math.hypot(B.x - gr, B.y - G.y), d = Math.min(d1, d2);
     var gs = (1 + 0.02 * pkv('size')) * GB, gp = pkv('grip');
-    var sc = ballScreen(), saved = d < 0.86 * gs + 0.03 * gp, clean = d < (0.42 + 0.04 * gp) * gs * (V === 'rain' ? 0.88 : 1), pen = M.mode === 'pen';
+    var wrongZ = M.mode === 'pen' && M.pz !== null && M.pz !== undefined && zoneOf(B.x) !== M.pz;
+    var sc = ballScreen(), saved = !wrongZ && d < 0.86 * gs + 0.03 * gp, clean = d < (0.42 + 0.04 * gp) * gs * (V === 'rain' ? 0.88 : 1), pen = M.mode === 'pen';
     phase = 'resolve'; resT = 0;
     var ourPen = pen ? 'Şimdi şutu sen çekeceksin' : '';
     if (saved) {
@@ -1786,7 +1819,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     } else {
       B.mode = 'free'; B.vx = lastV.x * 0.7; B.vy = lastV.y * 0.5; B.vz = Math.min(-4, lastV.z);
       kind = 'goal'; M.streak = 0; shake = (RM || !set.shake) ? 0 : 22; flashRed = set.fx ? 1 : 0; sfx.goal(); crowdReact('groan'); teamGoal(M.opp);
-      if (pen) { M.penTheirs++; banner('Gol yedin', ourPen, 'goal'); }
+      if (pen) { M.penTheirs++; banner(wrongZ ? 'Ters köşe!' : 'Gol yedin', wrongZ ? 'Top ' + ['sol köşeye', 'ortaya', 'sağ köşeye'][zoneOf(B.x)] + ' gitti · ' + ourPen : ourPen, 'goal'); }
       else { M.theirs++; banner('Gol yedin', TEAMS[T.team].c + ' ' + M.ours + '–' + M.theirs + ' ' + TEAMS[M.opp].c, 'goal'); }
     }
     updateHud();
@@ -1795,7 +1828,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   function update(dt) {
     var k = (M.d.k + 3.5 * pkv('reflex')) * (1.4 - 0.8 * set.smooth / 100), a = 1 - Math.exp(-k * dt), ox = G.x;
     G.curl += ((G.squeeze ? 1 : 0) - G.curl) * Math.min(1, dt * 14);
-    G.x += (G.tx - G.x) * a; G.y += (G.ty - G.y) * a;
+    var gtx = G.tx; if (!S.duo && M.mode === 'pen' && M.pz !== null && M.pz !== undefined && (phase === 'runup' || phase === 'flight' || phase === 'pick')) gtx = clamp(gtx, ZR[M.pz][0], ZR[M.pz][1]);
+    G.x += (gtx - G.x) * a; G.y += (G.ty - G.y) * a;
     G.vx = (G.x - ox) / dt;
     G.tilt += (clamp(G.vx * 0.07, -0.4, 0.4) - G.tilt) * Math.min(1, dt * 12);
     G.gap += ((G.squeeze ? 0.3 : GAP0) * GB - G.gap) * Math.min(1, dt * 14);
@@ -1815,8 +1849,12 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
         P.alpha = Math.min(1, P.alpha + dt * 3);
         if (pt >= 0.6) {
           if (S.duo) { phase = 'aim'; pt = 0; DU.ax = 0; DU.ay = 1.2; DU.power = 0; DU.charging = false; }
+          else if (M.mode === 'pen') { phase = 'pick'; pt = 0; M.pz = null; banEl.className = ''; }
           else { phase = 'runup'; pt = 0; runDur = 0.78; }
         }
+      } else if (phase === 'pick') {
+        P.alpha = Math.min(1, P.alpha + dt * 3);
+        if ((M.pz !== null && pt > 0.35) || pt > 3.5) { if (M.pz === null) M.pz = 1; phase = 'runup'; pt = 0; runDur = 0.78; }
       } else if (phase === 'aim') {
         duoAim(dt);
       } else if (phase === 'runup') {
@@ -1879,6 +1917,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
     var front = B.mode === 'free' ? B.z <= 0 : false;
     if (showBall && !front) { drawBallShadow(); var b = ballScreen(); drawBall(b.x, b.y, b.r, B.spin); }
     drawFrame();
+    if (!S.duo && M.mode === 'pen' && S.mode === 'play' && (phase === 'pick' || phase === 'runup' || phase === 'wait')) drawZones();
     var near = (B.mode === 'flight' && B.z < 1.2) ? 1 + 0.06 * (1 - B.z / 1.2) : 1;
     drawGlove(G.x - G.gap, G.y, -1, G.tilt, near);
     drawGlove(G.x + G.gap, G.y, 1, G.tilt, near);
@@ -2113,12 +2152,16 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   function gauss() { return (Math.random() + Math.random() + Math.random() - 1.5) * 1.6; }
   function botResolve() {
     var c = classify(DU.kg.x, DU.kg.y, GAP0, 0.55);
+    var wz = DU.pen && DU.bz !== undefined && zoneOf(B.x) !== DU.bz;
+    if (wz && (c.o === 'save' || c.o === 'parry')) c.o = 'goal';
     DU.resI = DU.i; phase = 'resolve'; resT = 0; tally(c.o); if (c.o === 'post' || c.o === 'miss') DU.off++;
     visualRes(c.o, c.away); updateHudDuo();
+    if (wz && c.o === 'goal') banner('Gol!', 'Kaleci ters köşeye atladı', 'goal');
   }
   function botTick(dt) {
     var kg = DU.kg, lv = DU.lv || BOT[duoCfg.lv] || BOT[1], ty = DU.btype || BT[0], a;
     var rtv = lv.rt * (ty.rt || 1), sv = lv.s * (ty.s || 1), kv = lv.k * (ty.k || 1);
+    if (DU.pen && phase === 'runup' && DU.bz === undefined) { var br = Math.random(); DU.bz = br < 0.42 ? 0 : br < 0.58 ? 1 : 2; DU.guessed = true; DU.bt = { x: [-2.4, 0, 2.4][DU.bz], y: 1.0, d: 0.12 }; }
     if (phase === 'runup' && !DU.guessed) {
       DU.guessed = true;
       if (ty.guess && Math.random() < ty.guess) { DU.gs = Math.random() < 0.5 ? -1 : 1; DU.bt = { x: DU.gs * 2.0, y: 0.9, d: 0.05, guess: true }; }
@@ -2127,6 +2170,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
       DU.botSet = true; var r = simBall(DU.fire.v, DU.fire.sy, DU.fire.tp, DU.fire.wb, DU.fire.ph, false);
       var guessed = DU.bt && DU.bt.guess, tx = r.x + gauss() * sv + (ty.bx || 0), tyy = clamp(r.y + gauss() * sv * 0.7, 0.2, 2.6);
       DU.bt = { x: tx, y: tyy, d: (guessed && (r.x < 0 ? -1 : 1) === DU.gs) ? 0 : rtv * (guessed ? 1.35 : 1) };
+      if (DU.pen && DU.bz !== undefined) { DU.bt.x = clamp(DU.bt.x, ZR[DU.bz][0], ZR[DU.bz][1]); DU.bt.d = Math.min(DU.bt.d, 0.1); }
     }
     if (DU.bt) { DU.bt.d -= dt; if (DU.bt.d <= 0) { a = 1 - Math.exp(-kv * dt); var mx = (DU.bt.x - kg.x) * a, my = (DU.bt.y - kg.y) * a, mm = Math.hypot(mx, my), cap = (lv.v || 6.5) * (ty.k || 1) * dt; if (mm > cap) { mx *= cap / mm; my *= cap / mm; } kg.x += mx; kg.y += my; } }
     else { a = Math.min(1, dt * 3); kg.x += (Math.sin(performance.now() / 700) * 0.5 - kg.x) * a; kg.y += (1.1 - kg.y) * a; }
@@ -2704,6 +2748,15 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   });
 
   // ---------- Girdi ----------
+  document.addEventListener('keydown', function (e) {
+    if (S.mode !== 'play' || S.paused || S.duo || phase !== 'pick') return;
+    var z = { KeyA: 0, ArrowLeft: 0, KeyS: 1, ArrowDown: 1, KeyD: 2, ArrowRight: 2 }[e.code];
+    if (z !== undefined) { pickZone(z); e.preventDefault(); }
+  });
+  stage.addEventListener('pointerdown', function (e) {
+    if (S.mode !== 'play' || S.paused || S.duo || phase !== 'pick' || (e.target.closest && e.target.closest('#pauseBtn, #pause'))) return;
+    var r = stage.getBoundingClientRect(); pickZone(zoneOf(clamp((e.clientX - r.left - cx) / s, -4, 4)));
+  });
   function setPtr(e) {
     if (e.target && e.target.closest && e.target.closest('#curlBar')) return;
     if (shooterOn()) { aimFromPtr(e); return; }
